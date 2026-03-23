@@ -16,23 +16,40 @@ export default function FinancialTracker() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchAllData() {
-      setLoading(true);
-      try {
-        const ids = SERIES_MAP[selectedCountry];
-        const res = await fetch(`/api/fred?series_id=${ids.headline}`);
-        const data = await res.json();
-        
-        const latestDate = new Date(data.observations[0].date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-        const chartSeries = data.observations.map((obs: any) => ({
-          m: new Date(obs.date).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
-          h: parseFloat(obs.value).toFixed(2)
-        })).reverse();
+async function fetchAllData() {
+  setLoading(true);
+  try {
+    const ids = SERIES_MAP[selectedCountry];
+    const res = await fetch(`/api/fred?series_id=${ids.headline}`);
+    const data = await res.json();
+    const obs = data.observations;
 
-        setLiveData({ headline: chartSeries[chartSeries.length-1].h, series: chartSeries, asOf: latestDate });
-      } catch (err) { console.error(err); }
-      setLoading(false);
+    // 1. Calculate YoY Inflation Rate (Current month vs 12 months ago)
+    const latestIndex = parseFloat(obs[0].value);
+    const yearAgoIndex = parseFloat(obs[12].value); 
+    const yoyRate = ((latestIndex / yearAgoIndex) - 1) * 100;
+
+    // 2. Format Chart Data (Rolling YoY for the last 6 months)
+    const chartSeries = [];
+    for (let i = 0; i < 6; i++) {
+        const current = parseFloat(obs[i].value);
+        const prevYear = parseFloat(obs[i + 12].value);
+        const rate = ((current / prevYear) - 1) * 100;
+        
+        chartSeries.push({
+          m: new Date(obs[i].date).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+          h: rate.toFixed(1) 
+        });
     }
+
+    setLiveData({
+      headline: yoyRate.toFixed(1), 
+      series: chartSeries.reverse(),
+      asOf: new Date(obs[0].date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    });
+  } catch (err) { console.error("Math Error:", err); }
+  setLoading(false);
+}
     fetchAllData();
   }, [selectedCountry]);
 
