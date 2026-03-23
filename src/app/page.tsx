@@ -20,37 +20,39 @@ async function fetchAllData() {
   setLoading(true);
   try {
     const ids = SERIES_MAP[selectedCountry];
+    // We fetch 25 points to ensure we have the current month + 12 months ago
     const res = await fetch(`/api/fred?series_id=${ids.headline}`);
     const data = await res.json();
     const obs = data.observations;
 
-    // 1. Calculate YoY Inflation Rate (Current month vs 12 months ago)
-    const latestIndex = parseFloat(obs[0].value);
-    const yearAgoIndex = parseFloat(obs[12].value); 
-    const yoyRate = ((latestIndex / yearAgoIndex) - 1) * 100;
+    if (obs && obs.length >= 13) {
+      // 1. Current Index vs 12 Months Ago
+      const currentVal = parseFloat(obs[0].value);
+      const yearAgoVal = parseFloat(obs[12].value);
+      const yoyRate = ((currentVal / yearAgoVal) - 1) * 100;
 
-    // 2. Format Chart Data (Rolling YoY for the last 6 months)
-    const chartSeries = [];
-    for (let i = 0; i < 6; i++) {
-        const current = parseFloat(obs[i].value);
-        const prevYear = parseFloat(obs[i + 12].value);
-        const rate = ((current / prevYear) - 1) * 100;
-        
+      // 2. Generate Chart Data (Rolling YoY for last 6 months)
+      const chartSeries = [];
+      for (let i = 0; i < 6; i++) {
+        const c = parseFloat(obs[i].value);
+        const p = parseFloat(obs[i + 12].value);
         chartSeries.push({
-          m: new Date(obs[i].date).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
-          h: rate.toFixed(1) 
+          m: new Date(obs[i].date).toLocaleDateString('en-US', { month: 'short' }),
+          h: (((c / p) - 1) * 100).toFixed(1)
         });
-    }
+      }
 
-    setLiveData({
-      headline: yoyRate.toFixed(1), 
-      series: chartSeries.reverse(),
-      asOf: new Date(obs[0].date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-    });
-  } catch (err) { console.error("Math Error:", err); }
+      setLiveData({
+        headline: yoyRate.toFixed(1), // This will now show 2.4 or 3.0
+        series: chartSeries.reverse(),
+        asOf: new Date(obs[0].date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+      });
+    }
+  } catch (err) {
+    console.error("Data processing error:", err);
+  }
   setLoading(false);
-}
-    fetchAllData();
+}    fetchAllData();
   }, [selectedCountry]);
 
   return (
