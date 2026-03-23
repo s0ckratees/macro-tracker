@@ -8,8 +8,8 @@ export async function GET(request: Request) {
 
   if (!seriesId || !apiKey) return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
 
-  const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${apiKey}&file_type=json&sort_order=desc&limit=12`;
-
+// Inside src/app/api/fred/route.ts
+const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${apiKey}&file_type=json&sort_order=desc&limit=25`;
   try {
     const res = await fetch(url);
     const data = await res.json();
