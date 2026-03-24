@@ -3,18 +3,26 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const seriesId = searchParams.get('series_id');
+  
+  // FIX: Name this series_id to match your usage below
+  const series_id = searchParams.get('series_id');
+
+  // 1. CAPTURE THE NEW START DATE FROM THE FRONTEND
+  const observation_start = searchParams.get('observation_start') || ''; 
+
+  if (!series_id) return NextResponse.json({ error: 'Missing series_id' }, { status: 400 });
+
   const apiKey = process.env.FRED_API_KEY;
 
-  if (!seriesId || !apiKey) return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
+  // 2. PLUG THE START DATE INTO THE FRED API CALL
+  const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${series_id}${observation_start ? `&observation_start=${observation_start}` : ''}&api_key=${apiKey}&file_type=json&sort_order=desc`;
 
-// Inside src/app/api/fred/route.ts
-const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${apiKey}&file_type=json&sort_order=desc&limit=25`;
   try {
     const res = await fetch(url);
     const data = await res.json();
     return NextResponse.json(data);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch' }, { status: 500 });
+    console.error("FRED API Error:", error);
+    return NextResponse.json({ error: 'Failed to fetch FRED data' }, { status: 500 });
   }
 }
