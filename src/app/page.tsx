@@ -81,7 +81,7 @@ export default function FinancialTracker() {
         {/* --- HEADER --- */}
         <header className="mb-8 flex flex-col md:flex-row justify-between items-center border-b border-slate-800 pb-6 gap-4">
           <div>
-            <h1 className="text-3xl font-black text-white italic tracking-tighter uppercase">Live<span className="text-indigo-500">Macro</span></h1>
+            <h1 className="text-3xl font-black text-white italic tracking-tighter uppercase">Live<span className="text-indigo-500">Macro v2</span></h1>
             <p className="text-[10px] text-slate-600 font-bold tracking-[0.3em] uppercase mt-1">Institutional Intelligence</p>
           </div>
           
