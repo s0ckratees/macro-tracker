@@ -74,15 +74,18 @@ export default function FinancialTracker() {
           const currentVal = parseFloat(obs.value);
           const prevYearVal = parseFloat(cpiObs[index + 12].value);
           
-          // Find the matching policy rate for this date
-          const matchingRate = rateObs.find((r: any) => r.date === obs.date);
+          // FIX: Look at the Year and Month (YYYY-MM) instead of the exact Day
+          const targetMonth = obs.date.substring(0, 7); 
+          
+          // Find a rate that happened in the same month
+          const matchingRate = rateObs.find((r: any) => r.date.startsWith(targetMonth));
           
           return {
             m: new Date(obs.date).toLocaleDateString('en-US', 
               timeRange === "1Y" ? { month: 'short' } : { year: '2-digit', month: 'short' }
             ),
-            h: ((currentVal / prevYearVal - 1) * 100).toFixed(2), // Inflation
-            policy: matchingRate ? parseFloat(matchingRate.value).toFixed(2) : null // Policy Rate
+            h: ((currentVal / prevYearVal - 1) * 100).toFixed(2),
+            policy: (matchingRate && matchingRate.value !== ".") ? parseFloat(matchingRate.value).toFixed(2) : null
           };
         });
 
