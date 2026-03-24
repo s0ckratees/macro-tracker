@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 
 const SERIES_MAP: any = {
   USA: { headline: "CPIAUCSL", rate: "FEDFUNDS", fixing: "SOFR", name: "United States", official: "3.75%" },
@@ -22,7 +22,6 @@ export default function FinancialTracker() {
   const [activeTab, setActiveTab] = useState("charts");
   const [liveData, setLiveData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [fxData, setFxData] = useState<any>(null);
 
   useEffect(() => {
     async function fetchAllData() {
@@ -51,19 +50,22 @@ export default function FinancialTracker() {
         const chartSeries = cpiObs.slice(0, cpiObs.length - 12).map((obs: any, index: number) => {
           const currentVal = parseFloat(obs.value);
           const prevYearVal = parseFloat(cpiObs[index + 12].value);
+          
+          // Find the matching policy rate for this date
           const matchingRate = rateObs.find((r: any) => r.date === obs.date);
           
           return {
             m: new Date(obs.date).toLocaleDateString('en-US', 
               timeRange === "1Y" ? { month: 'short' } : { year: '2-digit', month: 'short' }
             ),
-            h: ((currentVal / prevYearVal - 1) * 100).toFixed(2),
-            policy: matchingRate ? parseFloat(matchingRate.value).toFixed(2) : null
+            h: ((currentVal / prevYearVal - 1) * 100).toFixed(2), // Inflation
+            policy: matchingRate ? parseFloat(matchingRate.value).toFixed(2) : null // Policy Rate
           };
         });
 
         setLiveData({
           headline: chartSeries[0]?.h || "0.0",
+          latestRate: chartSeries[0]?.policy || "0.0",
           series: chartSeries.reverse()
         });
       } catch (err) { 
@@ -81,7 +83,7 @@ export default function FinancialTracker() {
         {/* --- HEADER --- */}
         <header className="mb-8 flex flex-col md:flex-row justify-between items-center border-b border-slate-800 pb-6 gap-4">
           <div>
-            <h1 className="text-3xl font-black text-white italic tracking-tighter uppercase">Live<span className="text-indigo-500">Macro v2</span></h1>
+            <h1 className="text-3xl font-black text-white italic tracking-tighter uppercase">Live<span className="text-indigo-500">Macro</span></h1>
             <p className="text-[10px] text-slate-600 font-bold tracking-[0.3em] uppercase mt-1">Institutional Intelligence</p>
           </div>
           
@@ -121,8 +123,8 @@ export default function FinancialTracker() {
             <p className="text-4xl font-mono font-bold text-white">{loading ? '...' : `${liveData?.headline}%`}</p>
           </div>
           <div className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 backdrop-blur-sm">
-            <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest mb-1">Primary Benchmark</p>
-            <p className="text-4xl font-mono font-bold text-indigo-400">{SERIES_MAP[selectedCountry].fixing}</p>
+            <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest mb-1">{SERIES_MAP[selectedCountry].fixing} Rate</p>
+            <p className="text-4xl font-mono font-bold text-emerald-400">{loading ? '...' : `${liveData?.latestRate}%`}</p>
           </div>
           <div className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 backdrop-blur-sm flex items-center justify-center">
              <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 w-full">
@@ -153,16 +155,29 @@ export default function FinancialTracker() {
                   <YAxis stroke="#64748b" fontSize={11} axisLine={false} tickLine={false} unit="%" />
                   <Tooltip 
                     contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', fontSize: '12px' }}
-                    itemStyle={{ color: '#6366f1' }}
+                    itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
                   />
+                  <Legend verticalAlign="top" height={36}/>
+                  
+                  {/* Inflation Line */}
                   <Line 
-                    name="Inflation" 
+                    name="Inflation YoY" 
                     type="monotone" 
                     dataKey="h" 
                     stroke="#6366f1" 
-                    strokeWidth={4} 
+                    strokeWidth={3} 
                     dot={timeRange === "1Y" ? { r: 4, fill: '#6366f1', strokeWidth: 0 } : false} 
-                    activeDot={{ r: 6 }}
+                  />
+
+                  {/* Policy Rate Line (SONIA, JIBAR, etc) */}
+                  <Line 
+                    name="Policy Rate" 
+                    type="stepAfter" 
+                    dataKey="policy" 
+                    stroke="#10b981" 
+                    strokeWidth={2} 
+                    strokeDasharray="5 5"
+                    dot={false} 
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -173,7 +188,7 @@ export default function FinancialTracker() {
                <div className="grid gap-4">
                  <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 flex justify-between items-center">
                    <span className="text-slate-500 text-sm font-bold uppercase tracking-tight">Current Policy Rate</span>
-                   <span className="text-white font-mono font-bold text-xl">{SERIES_MAP[selectedCountry].official}</span>
+                   <span className="text-white font-mono font-bold text-xl">{liveData?.latestRate}%</span>
                  </div>
                  <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 flex justify-between items-center">
                    <div>
@@ -187,17 +202,10 @@ export default function FinancialTracker() {
           )}
         </div>
 
-        {/* --- FX TICKER --- */}
         <footer className="mt-12">
-          <div className="bg-slate-900/30 p-4 rounded-xl border border-slate-800 flex flex-wrap gap-6 justify-center">
-            {fxData ? Object.entries(fxData.rates).map(([curr, val]: any) => (
-              <div key={curr} className="flex items-center space-x-2">
-                <span className="text-[10px] text-slate-500 font-bold uppercase">USD/{curr}</span>
-                <span className="text-sm font-mono font-bold text-white">{val.toFixed(3)}</span>
-              </div>
-            )) : <p className="text-[10px] text-slate-700 animate-pulse uppercase font-black">Streaming Liquidity...</p>}
-          </div>
-          <p className="text-center text-[9px] text-slate-800 mt-6 uppercase tracking-[0.5em]">Source: FRED & Frankfurter Open Data</p>
+          <p className="text-center text-[9px] text-slate-800 uppercase tracking-[0.5em]">
+            Data Pipeline: FRED API Integration • Terminal Version 2.4.0
+          </p>
         </footer>
 
       </div>
