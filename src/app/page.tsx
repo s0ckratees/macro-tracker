@@ -3,12 +3,35 @@ import { useState, useEffect } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 
 const SERIES_MAP: any = {
-  USA: { headline: "CPIAUCSL", rate: "FEDFUNDS", fixing: "SOFR", name: "United States", official: "3.75%" },
-  UK: { headline: "GBRCPIALLMINMEI", rate: "INTDSRGBM193N", fixing: "SONIA", name: "United Kingdom", official: "3.75%" },
-  SouthAfrica: { headline: "ZAFCPIALLMINMEI", rate: "INTDSRZAM193N", fixing: "JIBAR 3M", name: "South Africa", official: "6.75%" },
-  Eurozone: { headline: "CP0000EZ19M086NEST", rate: "ECBMRRST", fixing: "€STR", name: "Eurozone", official: "2.15%" }
+  USA: { 
+    headline: "CPIAUCSL", 
+    rate: "FEDFUNDS", 
+    fixing: "Fed Funds", 
+    name: "United States", 
+    official: "3.75%" 
+  },
+  UK: { 
+    headline: "GBRCPIALLMINMEI", 
+    rate: "INTDSRGBM193N", // BoE Discount Rate (More historical data)
+    fixing: "SONIA", 
+    name: "United Kingdom", 
+    official: "3.75%" 
+  },
+  SouthAfrica: { 
+    headline: "ZAFCPIALLMINMEI", 
+    rate: "INTDSRZAM193N", // SARB Discount Rate (Goes back decades)
+    fixing: "JIBAR", 
+    name: "South Africa", 
+    official: "6.75%" 
+  },
+  Eurozone: { 
+    headline: "CP0000EZ19M086NEST", 
+    rate: "ECBMRRST", // ECB Main Refinancing Rate
+    fixing: "ECB MRO", 
+    name: "Eurozone", 
+    official: "2.15%" 
+  }
 };
-
 const TIME_RANGES = [
   { label: "1Y", months: 12 },
   { label: "5Y", months: 60 },
